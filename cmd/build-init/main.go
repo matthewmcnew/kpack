@@ -18,6 +18,7 @@ import (
 var (
 	builder         = flag.String("builder", os.Getenv("BUILDER"), "the builder to initialize the env for a build")
 	platformEnvVars = flag.String("platformEnvVars", os.Getenv("PLATFORM_ENV_VARS"), "a JSON string of build time environment variables formatted as key/value pairs")
+	imageTag = flag.String("imageTag", os.Getenv("IMAGE_TAG"), "tag of image that will get created by the lifecycle")
 )
 
 func main() {
@@ -30,11 +31,24 @@ func main() {
 		log.Fatal(err)
 	}
 
+	hasWriteAccess, err := registry.HasWriteAccess(*imageTag)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if !hasWriteAccess {
+		log.Fatalf("invalid credentials to build to %s", *imageTag)
+	}
+
 	err = os.MkdirAll(filepath.Join(usr.HomeDir, ".docker"), os.ModePerm)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
+
+	parseDocker("/builderPullSecrets")
+
+	authn.NewMultiKeychain()
 	if fileExists("/builderPullSecrets/.dockerconfigjson", logger) {
 		err := os.Symlink("/builderPullSecrets/.dockerconfigjson", filepath.Join(usr.HomeDir, ".docker/config.json"))
 		if err != nil {

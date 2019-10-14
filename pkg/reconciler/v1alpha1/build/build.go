@@ -88,7 +88,7 @@ func (c *Reconciler) Reconcile(ctx context.Context, key string) error {
 		return nil
 	}
 
-	if build.Rebasable() {
+	if false {
 		image, err := c.ImageRebaser.Rebase(build, ctx)
 		if err != nil {
 			build.Status.Conditions = duckv1alpha1.Conditions{

@@ -76,6 +76,59 @@ var (
 )
 
 func (b *Build) BuildPod(config BuildPodConfig, secrets []corev1.Secret, builder BuildBuilderSpec, userAndGroup UserAndGroup) (*corev1.Pod, error) {
+	if b.Rebasable() {
+		volumes, secretVolumeMounts, secretArgs, err := b.setupSecretVolumesAndArgs(secrets)
+		if err != nil {
+			return nil, err
+		}
+
+		tags := b.Spec.Tags
+		return &corev1.Pod{
+			ObjectMeta: v1.ObjectMeta{
+				Name:      b.PodName(),
+				Namespace: b.Namespace,
+				Labels: b.labels(map[string]string{
+					BuildLabel: b.Name,
+				}),
+				OwnerReferences: []metav1.OwnerReference{
+					*kmeta.NewControllerRef(b),
+				},
+			},
+			Spec: corev1.PodSpec{
+				// If the build fails, don't restart it.
+				RestartPolicy: corev1.RestartPolicyNever,
+				Containers: []corev1.Container{
+					{
+						Name:            "completion",
+						Image:           config.NopImage,
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						Resources:       b.Spec.Resources,
+					},
+				},
+				InitContainers: []corev1.Container{
+					{
+						Name:            "rebase",
+						Image:           "kpack/rebaser@sha256:eaef451e499082f3e5a7ab49d46f068ae7d92fd80c001f4a2ecd69994773763a",
+						ImagePullPolicy: corev1.PullIfNotPresent,
+						WorkingDir:      "/workspace",
+						Args: append(
+							buildInitArgs("/layers/org.cloudfoundry.go-mod/app-binary/rebaser",
+								secretArgs,
+								fmt.Sprintf("-builder=%s", b.Spec.Builder.Image),
+								fmt.Sprintf("-previousImage=%s", b.Spec.LastBuild.Image)),
+							tags...,
+						),
+						VolumeMounts: append(
+							secretVolumeMounts,
+						),
+					},
+				},
+				ServiceAccountName: b.Spec.ServiceAccount,
+				Volumes:            volumes,
+			},
+		}, nil
+	}
+
 	buf, err := json.Marshal(b.Spec.Env)
 	if err != nil {
 		return nil, err
@@ -268,10 +321,12 @@ func (b *Build) BuildPod(config BuildPodConfig, secrets []corev1.Secret, builder
 
 const directExecute = "--"
 
-func buildInitArgs(buildInitBinary string, secretArgs []string) []string {
-	return append(
+func buildInitArgs(buildInitBinary string, secretArgs []string, args ...string) []string {
+	i := append(
 		[]string{directExecute, buildInitBinary},
 		secretArgs...)
+
+	return append(i, args...)
 }
 
 func (b *Build) cacheVolume() corev1.VolumeSource {

@@ -65,6 +65,16 @@ func testGitCheckout(t *testing.T, when spec.G, it spec.S) {
 		it("fetches a tag", testFetch("https://github.com/git-fixtures/tags", "lightweight-tag"))
 
 		it("fetches a revision", testFetch("https://github.com/git-fixtures/basic", "b029517f6300c2da0f4b651b8642506cd6aaf45d"))
+
+		it("returns invalid credentials to fetch error on authentication required", func() {
+			err := fetcher.Fetch(testDir, "http://github.com/private/secret-repo", "master")
+			require.EqualError(t, err, "invalid credentials to fetch git repository: http://github.com/private/secret-repo")
+		})
+
+		it("returns invalid credentials to fetch error on authentication required", func() {
+			err := fetcher.Fetch(testDir, "https://bitbucket.org/atlassian/dont-exist-buddy", "master")
+			require.EqualError(t, err, "invalid credentials to fetch git repository: http://github.com/private/secret-repo")
+		})
 	})
 }
 

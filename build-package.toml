@@ -1,0 +1,15 @@
+[default]
+id = "org.cloudfoundry.node-engine"
+version = "0.0.85"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.85-any-stack-14193e4f.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.npm/org.cloudfoundry.npm-0.0.53-any-stack-86a6f546.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.yarn/org.cloudfoundry.yarn-0.0.58-any-stack-6ab32e35.tgz"
+
+[[stacks]]
+id = "io.buildpacks.stacks.bionic"

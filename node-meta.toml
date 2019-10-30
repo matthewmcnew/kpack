@@ -1,0 +1,65 @@
+api = "0.2"
+
+[buildpack]
+id = "org.cloudfoundry.nodejs"
+name = "Node.js Buildpack"
+version = "1"
+
+[metadata]
+include_files = ["buildpack.toml"]
+
+[[metadata.dependencies]]
+id = "lifecycle"
+sha256 = "fe37503098e964aa1a052abb50fecf2de3624c0049506e638c86dc5b4b7909e8"
+source = "https://github.com/buildpack/lifecycle/releases/download/v0.5.0/lifecycle-v0.5.0%2Blinux.x86-64.tgz"
+source_sha256 = "fe37503098e964aa1a052abb50fecf2de3624c0049506e638c86dc5b4b7909e8"
+stacks = ["org.cloudfoundry.stacks.tiny","io.buildpacks.stacks.bionic","org.cloudfoundry.stacks.cflinuxfs3"]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/lifecycle/lifecycle-0.5.0-any-stack-fe375030.tgz"
+version = "0.5.0"
+
+[[metadata.dependencies]]
+id = "org.cloudfoundry.node-engine"
+sha256 = "14193e4fe00989c6be1465f9a3f002ba753918587c794562eade584e3c13b2f2"
+source = "https://github.com/cloudfoundry/node-engine-cnb/archive/v0.0.85.tar.gz"
+source_sha256 = "8cd687fb224184ba49947b7a220af9a21599b5baf9aa70e15bdb7c4037b85651"
+stacks = ["org.cloudfoundry.stacks.tiny","io.buildpacks.stacks.bionic","org.cloudfoundry.stacks.cflinuxfs3"]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.85-any-stack-14193e4f.tgz"
+version = "0.0.85"
+
+[[metadata.dependencies]]
+id = "org.cloudfoundry.npm"
+sha256 = "86a6f546534c850268e29dc4d763b553393a3fadf6e36896bfd152f97cbbf04f"
+source = "https://github.com/cloudfoundry/npm-cnb/archive/v0.0.53.tar.gz"
+source_sha256 = "43b1b37c8f75cd32730f369a19dd830e00f9707b92381f02856f71505202861a"
+stacks = ["org.cloudfoundry.stacks.tiny","io.buildpacks.stacks.bionic","org.cloudfoundry.stacks.cflinuxfs3"]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.npm/org.cloudfoundry.npm-0.0.53-any-stack-86a6f546.tgz"
+version = "0.0.53"
+
+[[metadata.dependencies]]
+id = "org.cloudfoundry.yarn"
+sha256 = "6ab32e35cd83544fc195d224c22226af0a9b8e8d5421c0a788501203906234df"
+source = "https://github.com/cloudfoundry/yarn-cnb/archive/v0.0.58.tar.gz"
+source_sha256 = "07d8939795632616339205a0d62a213963cee6df650270112ab81e1f513da62a"
+stacks = ["org.cloudfoundry.stacks.tiny","io.buildpacks.stacks.bionic","org.cloudfoundry.stacks.cflinuxfs3"]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.yarn/org.cloudfoundry.yarn-0.0.58-any-stack-6ab32e35.tgz"
+version = "0.0.58"
+
+[[order]]
+
+[[order.group]]
+id = "org.cloudfoundry.node-engine"
+version = "0.0.85"
+
+[[order.group]]
+id = "org.cloudfoundry.yarn"
+version = "0.0.58"
+
+[[order]]
+
+[[order.group]]
+id = "org.cloudfoundry.node-engine"
+version = "0.0.85"
+
+[[order.group]]
+id = "org.cloudfoundry.npm"
+version = "0.0.53"

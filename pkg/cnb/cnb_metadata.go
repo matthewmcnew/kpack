@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	BuilderMetadataLabel = "io.buildpacks.builder.metadata"
+	BuilderMetadataLabel    = "io.buildpacks.builder.metadata"
+	BuildPackageLayersLabel = "io.buildpacks.buildpack.layers"
 )
 
 type BuildpackMetadata struct {

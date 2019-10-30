@@ -3,6 +3,11 @@ id = "org.cloudfoundry.node-engine"
 version = "0.0.85"
 
 [[blobs]]
+#metabuildpack = true
+uri ="/tmp/test/java-cnb-1.0.527/java-cnb-1.0.527-new.tar.gz"
+
+
+[[blobs]]
 uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.85-any-stack-14193e4f.tgz"
 
 [[blobs]]

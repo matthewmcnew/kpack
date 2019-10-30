@@ -30,6 +30,10 @@ type Interface interface {
 	Builders() BuilderInformer
 	// ClusterBuilders returns a ClusterBuilderInformer.
 	ClusterBuilders() ClusterBuilderInformer
+	// CustomBuilders returns a CustomBuilderInformer.
+	CustomBuilders() CustomBuilderInformer
+	// CustomBuilderLists returns a CustomBuilderListInformer.
+	CustomBuilderLists() CustomBuilderListInformer
 	// Images returns a ImageInformer.
 	Images() ImageInformer
 	// SourceResolvers returns a SourceResolverInformer.
@@ -60,6 +64,16 @@ func (v *version) Builders() BuilderInformer {
 // ClusterBuilders returns a ClusterBuilderInformer.
 func (v *version) ClusterBuilders() ClusterBuilderInformer {
 	return &clusterBuilderInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// CustomBuilders returns a CustomBuilderInformer.
+func (v *version) CustomBuilders() CustomBuilderInformer {
+	return &customBuilderInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// CustomBuilderLists returns a CustomBuilderListInformer.
+func (v *version) CustomBuilderLists() CustomBuilderListInformer {
+	return &customBuilderListInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // Images returns a ImageInformer.

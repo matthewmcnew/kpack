@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/pkg/errors"
 )
@@ -97,6 +98,14 @@ func (i *GoContainerRegistryImage) Identifier() (string, error) {
 	return fmt.Sprintf("%s@%s", ref.Context().Name(), digest), nil
 }
 
+func (i *GoContainerRegistryImage) Digest() (string, error) {
+	digest, err := i.image.Digest()
+	if err != nil {
+		return "", err
+	}
+	return digest.String(), err
+}
+
 func (i *GoContainerRegistryImage) configFile() (*v1.ConfigFile, error) {
 	cfg, err := i.image.ConfigFile()
 	if err != nil {
@@ -106,4 +115,16 @@ func (i *GoContainerRegistryImage) configFile() (*v1.ConfigFile, error) {
 	}
 
 	return cfg, nil
+}
+
+func (i *GoContainerRegistryImage) AddLayer(layer v1.Layer) (RemoteImage, error) {
+	image, err := mutate.AppendLayers(i.image, layer)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GoContainerRegistryImage{
+		image:    image,
+		repoName: i.repoName,
+	}, nil
 }

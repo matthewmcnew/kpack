@@ -8,7 +8,6 @@ import (
 const CustomBuilderKind = "CustomBuilder"
 
 // +genclient
-// +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object,k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMetaAccessor
 
 type CustomBuilder struct {
@@ -20,10 +19,11 @@ type CustomBuilder struct {
 }
 
 type CustomBuilderSpec struct {
-	Tag   string  `json:"tag"`
-	Stack Stack   `json:"stack"`
-	Store Store   `json:"store"`
-	Order []Group `json:"order"`
+	Tag            string  `json:"tag"`
+	Stack          Stack   `json:"stack"`
+	Store          Store   `json:"store"`
+	Order          []Group `json:"order"`
+	ServiceAccount string  `json:"serviceAccount"`
 }
 
 type Stack struct {
@@ -42,7 +42,7 @@ type Buildpack struct {
 	ID string `json:"id"`
 }
 
-// +genclient:nonNamespaced
+// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type CustomBuilderList struct {
 	metav1.TypeMeta `json:",inline"`

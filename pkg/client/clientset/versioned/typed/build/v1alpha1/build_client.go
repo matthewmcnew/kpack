@@ -29,6 +29,8 @@ type BuildV1alpha1Interface interface {
 	BuildsGetter
 	BuildersGetter
 	ClusterBuildersGetter
+	CustomBuildersGetter
+	CustomBuilderListsGetter
 	ImagesGetter
 	SourceResolversGetter
 }
@@ -48,6 +50,14 @@ func (c *BuildV1alpha1Client) Builders(namespace string) BuilderInterface {
 
 func (c *BuildV1alpha1Client) ClusterBuilders() ClusterBuilderInterface {
 	return newClusterBuilders(c)
+}
+
+func (c *BuildV1alpha1Client) CustomBuilders(namespace string) CustomBuilderInterface {
+	return newCustomBuilders(c, namespace)
+}
+
+func (c *BuildV1alpha1Client) CustomBuilderLists(namespace string) CustomBuilderListInterface {
+	return newCustomBuilderLists(c, namespace)
 }
 
 func (c *BuildV1alpha1Client) Images(namespace string) ImageInterface {

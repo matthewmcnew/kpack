@@ -24,6 +24,10 @@ type BuilderExpansion interface{}
 
 type ClusterBuilderExpansion interface{}
 
+type CustomBuilderExpansion interface{}
+
+type CustomBuilderListExpansion interface{}
+
 type ImageExpansion interface{}
 
 type SourceResolverExpansion interface{}

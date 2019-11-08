@@ -27,7 +27,7 @@ const (
 
 //go:generate counterfeiter . MetadataRetriever
 type MetadataRetriever interface {
-	GetBuilderImage(builder v1alpha1.BuilderResource) (cnb.BuilderImage, error)
+	GetBuilderImage(builder v1alpha1.BuilderResource) (cnb.RemoteImage, error)
 }
 
 func NewController(opt reconciler.Options, builderInformer v1alpha1informers.BuilderInformer, metadataRetriever MetadataRetriever) *controller.Impl {

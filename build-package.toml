@@ -1,20 +1,48 @@
 [default]
-id = "org.cloudfoundry.node-engine"
-version = "0.0.85"
+id = "org.cloudfoundry.nodejs"
+version = "0.0.3"
 
 [[blobs]]
-#metabuildpack = true
-uri ="/tmp/test/java-cnb-1.0.527/java-cnb-1.0.527-new.tar.gz"
-
+uri = "../nodejs-cnb/release"
 
 [[blobs]]
-uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.85-any-stack-14193e4f.tgz"
+uri = "bogus"
 
 [[blobs]]
-uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.npm/org.cloudfoundry.npm-0.0.53-any-stack-86a6f546.tgz"
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.89-any-stack-f2951687.tgz"
 
 [[blobs]]
-uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.yarn/org.cloudfoundry.yarn-0.0.58-any-stack-6ab32e35.tgz"
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.node-engine/org.cloudfoundry.node-engine-0.0.82-any-stack-d156f0e6.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.npm/org.cloudfoundry.npm-0.0.55-any-stack-75a119b5.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.npm/org.cloudfoundry.npm-0.0.51-any-stack-b42a73fe.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.yarn/org.cloudfoundry.yarn-0.0.61-any-stack-b6151972.tgz"
+
+[[blobs]]
+uri = "https://buildpacks.cloudfoundry.org/dependencies/org.cloudfoundry.yarn/org.cloudfoundry.yarn-0.0.56-any-stack-f7e511cc.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/openjdk-cnb/org.cloudfoundry.openjdk-1.0.56.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/build-system-cnb/org.cloudfoundry.buildsystem-1.0.125.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/jvm-application-cnb/org.cloudfoundry.jvmapplication-1.0.78.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/tomcat-cnb/org.cloudfoundry.tomcat-1.1.17.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/spring-boot-cnb/org.cloudfoundry.springboot-1.0.106.tgz"
+
+[[blobs]]
+uri = "https://storage.googleapis.com/cnb-buildpacks/procfile-cnb/org.cloudfoundry.procfile-1.0.39.tgz"
 
 [[stacks]]
 id = "io.buildpacks.stacks.bionic"

@@ -28,7 +28,7 @@ type RemoteImage interface {
 	Identifier() (string, error)
 	Label(labelName string) (string, error)
 	Env(key string) (string, error)
-	Digest() (string, error)
+	//Digest() (string, error)
 }
 
 //go:generate counterfeiter . RemoteImageFactory

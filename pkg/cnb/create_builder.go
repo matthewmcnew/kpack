@@ -1,90 +1,49 @@
 package cnb
 
 import (
-	"github.com/buildpack/imgutil/remote"
-	"github.com/google/go-containerregistry/pkg/authn"
-
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/pivotal/kpack/pkg/apis/build/v1alpha1"
 	"github.com/pivotal/kpack/pkg/registry"
 )
 
-// Given a list of blobs
-//inputs
-//buildpackage image gcr.io/build/package
-//order
-//secrets
-//tag
-
-type PackageMetadata struct {
-	Buildpacks map[string]struct {
-		Version map[string]struct {
-			DiffID string `json:"layerDiffID"`
-		}
-	}
-}
-
-type PackageMetadaFetcher interface {
-	GetBuildpackage(string, authn.Keychain) (PackageMetadata, error)
-}
-
 type RemoteBuilderCreator struct {
-	KeychainFactory registry.KeychainFactory
-	MetadataFetcher PackageMetadaFetcher
+	FetchImage func(secretRef registry.SecretRef, image string) (v1.Image, error) //is secret ref the right abstraction?
+	NewStore   func(secretRef registry.SecretRef, storeImage string) (Store, error)
 }
 
-func (r *RemoteBuilderCreator) createBuilder(customBuilder v1alpha1.CustomBuilder) (v1alpha1.BuilderStatus, error) {
-	keychain, err := r.KeychainFactory.KeychainForSecretRef(registry.SecretRef{
+func (r *RemoteBuilderCreator) CreateBuilder(customBuilder *v1alpha1.CustomBuilder) (*RemoteBuilderImage, error) {
+	var secretRef = registry.SecretRef{
 		ServiceAccount: customBuilder.Spec.ServiceAccount,
 		Namespace:      customBuilder.Namespace,
-	})
+	}
+	baseImage, err := r.FetchImage(secretRef, customBuilder.Spec.Stack.BaseBuilderImage)
 	if err != nil {
-		return v1alpha1.BuilderStatus{}, err
+		return nil, err
 	}
 
-	//fetch metadatadata
-	metadata, err := r.MetadataFetcher.GetBuildpackage(customBuilder.Spec.Store.Image, keychain)
+	remoteBuilder, err := NewRemoteBuilderImage(baseImage)
 	if err != nil {
-		return v1alpha1.BuilderStatus{}, err
+		return nil, err
 	}
 
-	image, err := remote.NewImage(customBuilder.Spec.Tag, keychain,
-		remote.FromBaseImage(customBuilder.Spec.Stack.BaseBuilderImage),
-		remote.WithPreviousImage(customBuilder.Spec.Store.Image))
+	store, err := r.NewStore(secretRef, customBuilder.Spec.Store.Image)
 	if err != nil {
-		return v1alpha1.BuilderStatus{}, err
+		return nil, err
 	}
 
-	// filter the metadata based on order
 	for _, group := range customBuilder.Spec.Order {
-		for _, buildpack := range group.Group {
+		buildpacks := make([]RemoteBuildpack, 0, len(group.Group))
 
+		for _, buildpack := range group.Group {
+			remoteBuildpack, err := store.FetchBuildpack(buildpack.ID, buildpack.Version)
+			if err != nil {
+				return nil, err
+			}
+
+			buildpacks = append(buildpacks, remoteBuildpack.Optional(buildpack.Optional))
 		}
-		//image.ReuseLayer(group.DiffID)
+		remoteBuilder.AddGroup(buildpacks...)
 	}
 
-	image.AddLayer()
-
-
-	return v1alpha1.BuilderStatus{}, nil
+	return remoteBuilder, nil
 }
-
-// Create remote image
-// Attach the blobs to the image
-// Write some metadata
-// push image to registry
-//
-//pb buildpack upload io.wells.oracle
-//
-//Store {
-//	Images {
-//		pivotal.io/buildpackage - > digest
-//		gcr.io/wells/oracle-buildpack@sha256:digest ->
-//	}
-//}
-//
-//
-//
-//nodejs-cnb // meta 3 buildpacks
-//yarn
-//nodeengine
-//npm

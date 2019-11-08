@@ -17,28 +17,11 @@ const (
 	BuildPackageLayersLabel = "io.buildpacks.buildpack.layers"
 )
 
-type BuildpackMetadata struct {
-	ID      string `json:"id"`
-	Version string `json:"version"`
-}
-
-type BuilderImageMetadata struct {
-	Buildpacks []BuildpackMetadata    `json:"buildpacks"`
-	Stack      metadata.StackMetadata `json:"stack"`
-}
-
-type Stack struct {
-	RunImage string
-	ID       string
-}
-
 type BuilderImage struct {
-	BuilderBuildpackMetadata BuilderMetadata
+	BuilderBuildpackMetadata []BuildpackInfo
 	Stack                    Stack
 	Identifier               string
 }
-
-type BuilderMetadata []BuildpackMetadata
 
 type RemoteMetadataRetriever struct {
 	RemoteImageFactory registry.RemoteImageFactory
@@ -50,13 +33,13 @@ func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResour
 		ImagePullSecrets: builder.ImagePullSecrets(),
 	})
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote builder image")
+		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote builder baseImage")
 	}
 
 	var metadataJSON string
 	metadataJSON, err = img.Label(BuilderMetadataLabel)
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "builder image metadata label not present")
+		return BuilderImage{}, errors.Wrap(err, "builder baseImage metadata label not present")
 	}
 
 	stackId, err := img.Label(metadata.StackMetadataLabel)
@@ -72,7 +55,7 @@ func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResour
 
 	identifier, err := img.Identifier()
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "failed to retrieve builder image SHA")
+		return BuilderImage{}, errors.Wrap(err, "failed to retrieve builder baseImage SHA")
 	}
 
 	runImage, err := r.RemoteImageFactory.NewRemote(md.Stack.RunImage.Image, registry.SecretRef{
@@ -81,12 +64,12 @@ func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResour
 	})
 
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote run image")
+		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote run baseImage")
 	}
 
 	runImageIdentifier, err := runImage.Identifier()
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "failed to retrieve run image SHA")
+		return BuilderImage{}, errors.Wrap(err, "failed to retrieve run baseImage SHA")
 	}
 
 	return BuilderImage{

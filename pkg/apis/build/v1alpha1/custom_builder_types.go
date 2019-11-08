@@ -39,7 +39,10 @@ type Group struct {
 }
 
 type Buildpack struct {
-	ID string `json:"id"`
+	ID      string `json:"id"`
+	Version string `json:"version"`
+
+	Optional bool `json:"optional"`
 }
 
 // +genclient

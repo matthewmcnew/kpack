@@ -74,7 +74,7 @@ func testClusterBuilderReconciler(t *testing.T, when spec.G, it spec.S) {
 	when("#Reconcile", func() {
 		when("cluster builder", func() {
 			when("metadata is available", func() {
-				fakeMetadataRetriever.GetBuilderImageReturns(cnb.BuilderImage{
+				fakeMetadataRetriever.GetBuilderImageReturns(cnb.RemoteImage{
 					BuilderBuildpackMetadata: cnb.BuilderMetadata{
 						{
 							ID:      "buildpack.version",
@@ -258,7 +258,7 @@ func testClusterBuilderReconciler(t *testing.T, when spec.G, it spec.S) {
 			})
 
 			when("metadata is not available", func() {
-				fakeMetadataRetriever.GetBuilderImageReturns(cnb.BuilderImage{}, errors.New("unavailable metadata"))
+				fakeMetadataRetriever.GetBuilderImageReturns(cnb.RemoteImage{}, errors.New("unavailable metadata"))
 
 				it("saves not ready to the builder status", func() {
 					rt.Test(rtesting.TableRow{

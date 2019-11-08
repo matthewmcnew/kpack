@@ -7,6 +7,7 @@ require (
 	contrib.go.opencensus.io/exporter/prometheus v0.1.0 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.12.2 // indirect
 	github.com/Azure/azure-sdk-for-go v11.3.0-beta+incompatible // indirect
+	github.com/BurntSushi/toml v0.3.1
 	github.com/aws/aws-sdk-go v1.25.1 // indirect
 	github.com/buildpack/imgutil v0.0.0-20191010153712-78959154ded1
 	github.com/buildpack/lifecycle v0.5.0

@@ -2,6 +2,7 @@ package cnb
 
 import (
 	"encoding/json"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
@@ -15,12 +16,7 @@ type BuildPackageStoreFactory struct {
 	KeychainFactory registry.KeychainFactory
 }
 
-func (f *BuildPackageStoreFactory) NewBuildPackageStore(secretRef registry.SecretRef, storeImage string) (Store, error) {
-	keychain, err := f.KeychainFactory.KeychainForSecretRef(secretRef)
-	if err != nil {
-		return nil, err
-	}
-
+func (f *BuildPackageStoreFactory) NewBuildPackageStore(keychain authn.Keychain, storeImage string) (Store, error) {
 	ref, err := name.ParseReference(storeImage, name.WeakValidation)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,7 @@ const (
 	buildpackOrderLabel    = "io.buildpacks.buildpack.order"
 	buildpackLayersLabel   = "io.buildpacks.buildpack.layers"
 	buildpackMetadataLabel = "io.buildpacks.builder.metadata"
+	stackMetadataLabel     = "io.buildpacks.stack.id"
 
 	orderTomlPath = "/cnb/order.toml"
 )

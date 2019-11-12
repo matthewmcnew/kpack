@@ -1,8 +1,8 @@
 package v1alpha1
 
 import (
+	"github.com/pivotal/kpack/pkg/apis/build/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 const CustomBuilderKind = "CustomBuilder"
@@ -14,8 +14,8 @@ type CustomBuilder struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   CustomBuilderSpec `json:"spec"`
-	Status BuilderStatus     `json:"status"`
+	Spec   CustomBuilderSpec      `json:"spec"`
+	Status v1alpha1.BuilderStatus `json:"status"`
 }
 
 type CustomBuilderSpec struct {
@@ -45,15 +45,10 @@ type Buildpack struct {
 	Optional bool `json:"optional"`
 }
 
-// +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type CustomBuilderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
 	Items []CustomBuilder `json:"items"`
-}
-
-func (*CustomBuilder) GetGroupVersionKind() schema.GroupVersionKind {
-	return SchemeGroupVersion.WithKind(ClusterBuilderKind)
 }

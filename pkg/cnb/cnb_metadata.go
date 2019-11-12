@@ -13,49 +13,42 @@ import (
 )
 
 const (
-	BuilderMetadataLabel    = "io.buildpacks.builder.metadata"
-	BuildPackageLayersLabel = "io.buildpacks.buildpack.layers"
+	BuilderMetadataLabel = "io.buildpacks.builder.metadata"
 )
-
-type BuilderImage struct {
-	BuilderBuildpackMetadata []BuildpackInfo
-	Stack                    Stack
-	Identifier               string
-}
 
 type RemoteMetadataRetriever struct {
 	RemoteImageFactory registry.RemoteImageFactory
 }
 
-func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResource) (BuilderImage, error) {
+func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResource) (v1alpha1.BuilderRecord, error) {
 	img, err := r.RemoteImageFactory.NewRemote(builder.Image(), registry.SecretRef{
 		Namespace:        builder.GetObjectMeta().GetNamespace(),
 		ImagePullSecrets: builder.ImagePullSecrets(),
 	})
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote builder baseImage")
+		return emptyRecord, errors.Wrap(err, "unable to fetch remote builder baseImage")
 	}
 
 	var metadataJSON string
 	metadataJSON, err = img.Label(BuilderMetadataLabel)
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "builder baseImage metadata label not present")
+		return emptyRecord, errors.Wrap(err, "builder baseImage metadata label not present")
 	}
 
 	stackId, err := img.Label(metadata.StackMetadataLabel)
 	if err != nil {
-		return BuilderImage{}, err
+		return emptyRecord, err
 	}
 
 	var md BuilderImageMetadata
 	err = json.Unmarshal([]byte(metadataJSON), &md)
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "unsupported builder metadata structure")
+		return emptyRecord, errors.Wrap(err, "unsupported builder metadata structure")
 	}
 
 	identifier, err := img.Identifier()
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "failed to retrieve builder baseImage SHA")
+		return emptyRecord, errors.Wrap(err, "failed to retrieve builder baseImage SHA")
 	}
 
 	runImage, err := r.RemoteImageFactory.NewRemote(md.Stack.RunImage.Image, registry.SecretRef{
@@ -64,22 +57,35 @@ func (r *RemoteMetadataRetriever) GetBuilderImage(builder v1alpha1.BuilderResour
 	})
 
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "unable to fetch remote run baseImage")
+		return emptyRecord, errors.Wrap(err, "unable to fetch remote run baseImage")
 	}
 
 	runImageIdentifier, err := runImage.Identifier()
 	if err != nil {
-		return BuilderImage{}, errors.Wrap(err, "failed to retrieve run baseImage SHA")
+		return emptyRecord, errors.Wrap(err, "failed to retrieve run baseImage SHA")
 	}
 
-	return BuilderImage{
-		BuilderBuildpackMetadata: md.Buildpacks,
-		Stack: Stack{
+	return v1alpha1.BuilderRecord{
+		Image: identifier,
+		Stack: v1alpha1.BuildStack{
 			RunImage: runImageIdentifier,
 			ID:       stackId,
 		},
-		Identifier: identifier,
+		Buildpacks: transform(md.Buildpacks),
 	}, nil
+}
+
+var emptyRecord v1alpha1.BuilderRecord
+
+func transform(infos []BuildpackInfo) v1alpha1.BuildpackMetadataList {
+	buildpacks := make(v1alpha1.BuildpackMetadataList, 0, len(infos))
+	for _, buildpack := range infos {
+		buildpacks = append(buildpacks, v1alpha1.BuildpackMetadata{
+			ID:      buildpack.ID,
+			Version: buildpack.Version,
+		})
+	}
+	return buildpacks
 }
 
 func (r *RemoteMetadataRetriever) GetBuiltImage(ref *v1alpha1.Build) (BuiltImage, error) {

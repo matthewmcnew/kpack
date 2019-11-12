@@ -44,23 +44,23 @@ func (l BuildpackLayerMetadata) metadataFor(id, version string) (BuildpackInfo, 
 		return BuildpackInfo{}, BuildpackLayerInfo{}, errors.Errorf("could not find buildpack: %s", id)
 	}
 
-	if version != "" {
-		buildpackLayer, ok := versionMap[version]
-		if !ok {
-			return BuildpackInfo{}, BuildpackLayerInfo{}, errors.Errorf("could not find buildpack with id: %s and version: %s", id, version)
+	if version == "" {
+		if len(versionMap) == 0 {
+			return BuildpackInfo{}, BuildpackLayerInfo{}, errors.Errorf("no versions of buildpack: %s", id)
 		}
-		return BuildpackInfo{id, version}, buildpackLayer, nil
+
+		version = highestVersion(versionMap)
+		return BuildpackInfo{id, version}, versionMap[version], nil
 	}
 
-	if len(versionMap) == 0 {
-		return BuildpackInfo{}, BuildpackLayerInfo{}, errors.Errorf("no versions of buildpack: %s", id)
+	buildpackLayer, ok := versionMap[version]
+	if !ok {
+		return BuildpackInfo{}, BuildpackLayerInfo{}, errors.Errorf("could not find buildpack with id: %s and version: %s", id, version)
 	}
-
-	version = selectHighestVersion(versionMap)
-	return BuildpackInfo{id, version}, versionMap[version], nil
+	return BuildpackInfo{id, version}, buildpackLayer, nil
 }
 
-func selectHighestVersion(versionMap map[string]BuildpackLayerInfo) string {
+func highestVersion(versionMap map[string]BuildpackLayerInfo) string {
 	versions := make([]string, 0, len(versionMap))
 	for v := range versionMap {
 		versions = append(versions, v)

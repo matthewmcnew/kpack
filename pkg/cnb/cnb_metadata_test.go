@@ -55,12 +55,12 @@ func testMetadataRetriever(t *testing.T, when spec.G, it spec.S) {
 				mockFactory.NewRemoteReturnsOnCall(1, fakeRunImage, nil)
 
 				subject := cnb.RemoteMetadataRetriever{RemoteImageFactory: mockFactory}
-				builderImage, err := subject.GetBuilderImage(builder)
+				builderRecord, err := subject.GetBuilderImage(builder)
 				assert.NoError(t, err)
 
-				require.Len(t, builderImage.BuilderBuildpackMetadata, 1)
-				assert.Equal(t, builderImage.BuilderBuildpackMetadata[0].ID, "test.id")
-				assert.Equal(t, builderImage.BuilderBuildpackMetadata[0].Version, "1.2.3")
+				require.Len(t, builderRecord.Buildpacks, 1)
+				assert.Equal(t, builderRecord.Buildpacks[0].ID, "test.id")
+				assert.Equal(t, builderRecord.Buildpacks[0].Version, "1.2.3")
 				image, secretRef := mockFactory.NewRemoteArgsForCall(0)
 				assert.Equal(t, image, "builder/name")
 				assert.Equal(t, secretRef, registry.SecretRef{
@@ -68,9 +68,9 @@ func testMetadataRetriever(t *testing.T, when spec.G, it spec.S) {
 					ImagePullSecrets: []v1.LocalObjectReference{{"Secret-1"}, {"Secret-2"}},
 				})
 
-				assert.Equal(t, "index.docker.io/builder/baseImage@sha256:2bc85afc0ee0aec012b3889cf5f2e9690bb504c9d19ce90add2f415b85990895", builderImage.Identifier)
-				assert.Equal(t, "foo.io/run@sha256:c9d19ce90add2f415b859908952bc85afc0ee0aec012b3889cf5f2e9690bb504", builderImage.Stack.RunImage)
-				assert.Equal(t, "io.buildpacks.stacks.bionic", builderImage.Stack.ID)
+				assert.Equal(t, "index.docker.io/builder/baseImage@sha256:2bc85afc0ee0aec012b3889cf5f2e9690bb504c9d19ce90add2f415b85990895", builderRecord.Image)
+				assert.Equal(t, "foo.io/run@sha256:c9d19ce90add2f415b859908952bc85afc0ee0aec012b3889cf5f2e9690bb504", builderRecord.Stack.RunImage)
+				assert.Equal(t, "io.buildpacks.stacks.bionic", builderRecord.Stack.ID)
 			})
 		})
 

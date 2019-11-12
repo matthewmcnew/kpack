@@ -19,47 +19,27 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/pivotal/kpack/pkg/apis/build/v1alpha1"
+	v1alpha1 "github.com/pivotal/kpack/pkg/apis/experimental/v1alpha1"
 	"github.com/pivotal/kpack/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
-type BuildV1alpha1Interface interface {
+type ExperimentalV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	BuildsGetter
-	BuildersGetter
-	ClusterBuildersGetter
-	ImagesGetter
-	SourceResolversGetter
+	CustomBuildersGetter
 }
 
-// BuildV1alpha1Client is used to interact with features provided by the build.pivotal.io group.
-type BuildV1alpha1Client struct {
+// ExperimentalV1alpha1Client is used to interact with features provided by the experimental.kpack.pivotal.io group.
+type ExperimentalV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *BuildV1alpha1Client) Builds(namespace string) BuildInterface {
-	return newBuilds(c, namespace)
+func (c *ExperimentalV1alpha1Client) CustomBuilders(namespace string) CustomBuilderInterface {
+	return newCustomBuilders(c, namespace)
 }
 
-func (c *BuildV1alpha1Client) Builders(namespace string) BuilderInterface {
-	return newBuilders(c, namespace)
-}
-
-func (c *BuildV1alpha1Client) ClusterBuilders() ClusterBuilderInterface {
-	return newClusterBuilders(c)
-}
-
-func (c *BuildV1alpha1Client) Images(namespace string) ImageInterface {
-	return newImages(c, namespace)
-}
-
-func (c *BuildV1alpha1Client) SourceResolvers(namespace string) SourceResolverInterface {
-	return newSourceResolvers(c, namespace)
-}
-
-// NewForConfig creates a new BuildV1alpha1Client for the given config.
-func NewForConfig(c *rest.Config) (*BuildV1alpha1Client, error) {
+// NewForConfig creates a new ExperimentalV1alpha1Client for the given config.
+func NewForConfig(c *rest.Config) (*ExperimentalV1alpha1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -68,12 +48,12 @@ func NewForConfig(c *rest.Config) (*BuildV1alpha1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &BuildV1alpha1Client{client}, nil
+	return &ExperimentalV1alpha1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new BuildV1alpha1Client for the given config and
+// NewForConfigOrDie creates a new ExperimentalV1alpha1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *BuildV1alpha1Client {
+func NewForConfigOrDie(c *rest.Config) *ExperimentalV1alpha1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -81,9 +61,9 @@ func NewForConfigOrDie(c *rest.Config) *BuildV1alpha1Client {
 	return client
 }
 
-// New creates a new BuildV1alpha1Client for the given RESTClient.
-func New(c rest.Interface) *BuildV1alpha1Client {
-	return &BuildV1alpha1Client{c}
+// New creates a new ExperimentalV1alpha1Client for the given RESTClient.
+func New(c rest.Interface) *ExperimentalV1alpha1Client {
+	return &ExperimentalV1alpha1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -101,7 +81,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *BuildV1alpha1Client) RESTClient() rest.Interface {
+func (c *ExperimentalV1alpha1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

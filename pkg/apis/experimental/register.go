@@ -15,8 +15,8 @@
  *
  */
 
-package build
+package experimental
 
 const (
-	GroupName = "build.pivotal.io"
+	GroupName = "experimental.kpack.pivotal.io"
 )

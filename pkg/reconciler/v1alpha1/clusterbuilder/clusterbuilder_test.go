@@ -258,7 +258,7 @@ func testClusterBuilderReconciler(t *testing.T, when spec.G, it spec.S) {
 			})
 
 			when("metadata is not available", func() {
-				fakeMetadataRetriever.GetBuilderImageReturns(cnb.RemoteImage{}, errors.New("unavailable metadata"))
+				fakeMetadataRetriever.GetBuilderImageReturns(v1alpha1.BuilderRecord{}, errors.New("unavailable metadata"))
 
 				it("saves not ready to the builder status", func() {
 					rt.Test(rtesting.TableRow{

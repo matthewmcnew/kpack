@@ -3,62 +3,84 @@ package cnb
 import (
 	"archive/tar"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/BurntSushi/toml"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
-	"github.com/pkg/errors"
+	"github.com/pivotal/kpack/pkg/apis/build/v1alpha1"
+	"github.com/pivotal/kpack/pkg/registry"
 	"sort"
 	"time"
 )
 
-func NewRemoteBuilderImage(baseImage v1.Image) (*RemoteBuilderImage, error) {
+func newBuilderBuilder(baseImage v1.Image) (*BuilderBuilder, error) {
 	baseMetadata := &BuilderImageMetadata{}
-	err := getLabel(baseImage, buildpackMetadataLabel, baseMetadata)
+	err := registry.GetLabel(baseImage, buildpackMetadataLabel, baseMetadata)
 	if err != nil {
 		return nil, err
 	}
 
-	return &RemoteBuilderImage{
-		baseMetadata:    baseMetadata,
+	stackID, err := registry.GetStringLabel(baseImage, stackMetadataLabel)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BuilderBuilder{
 		baseImage:       baseImage,
+		baseMetadata:    baseMetadata,
+		stackID:         stackID,
 		buildpackLayers: map[BuildpackInfo]buildpackLayer{},
 	}, nil
 }
 
-type RemoteBuilderImage struct {
+type BuilderBuilder struct {
 	baseImage       v1.Image
 	baseMetadata    *BuilderImageMetadata
 	order           []OrderEntry
+	stackID         string
 	buildpackLayers map[BuildpackInfo]buildpackLayer
 }
 
-func (rb *RemoteBuilderImage) AddGroup(buildpacks ...RemoteBuildpack) {
+func (cb *BuilderBuilder) addGroup(buildpacks ...RemoteBuildpack) {
 	group := make([]BuildpackRef, 0, len(buildpacks))
 	for _, b := range buildpacks {
 		group = append(group, b.BuildpackRef)
 
 		for _, layer := range b.Layers {
-			rb.buildpackLayers[layer.BuildpackInfo] = layer
+			cb.buildpackLayers[layer.BuildpackInfo] = layer
 		}
 	}
-	rb.order = append(rb.order, OrderEntry{Group: group})
+	cb.order = append(cb.order, OrderEntry{Group: group})
 }
 
-func (rb *RemoteBuilderImage) WriteableImage() (v1.Image, error) {
-	buildpackLayerMetadata := make(BuildpackLayerMetadata)
-	buildpacks := make([]BuildpackInfo, 0, len(rb.buildpackLayers))
-	layers := make([]v1.Layer, 0, len(rb.buildpackLayers)+1)
+func (cb *BuilderBuilder) stack() v1alpha1.BuildStack {
+	return v1alpha1.BuildStack{
+		RunImage: cb.baseMetadata.Stack.RunImage.Image,
+		ID:       cb.stackID,
+	}
+}
 
-	sortedBuildpacks, err := deterministicSortBySize(rb.buildpackLayers)
-	if err != nil {
-		return nil, err
+func (cb *BuilderBuilder) buildpacks() v1alpha1.BuildpackMetadataList {
+	buildpacks := make(v1alpha1.BuildpackMetadataList, 0, len(cb.buildpackLayers))
+
+	for _, bp := range deterministicSortBySize(cb.buildpackLayers) {
+		buildpacks = append(buildpacks, v1alpha1.BuildpackMetadata{
+			ID:      bp.ID,
+			Version: bp.Version,
+		})
 	}
 
-	for _, key := range sortedBuildpacks {
-		layer := rb.buildpackLayers[key]
+	return buildpacks
+}
+
+func (cb *BuilderBuilder) writeableImage() (v1.Image, error) {
+	buildpackLayerMetadata := make(BuildpackLayerMetadata)
+	buildpacks := make([]BuildpackInfo, 0, len(cb.buildpackLayers))
+	layers := make([]v1.Layer, 0, len(cb.buildpackLayers)+1)
+
+	for _, key := range deterministicSortBySize(cb.buildpackLayers) {
+		layer := cb.buildpackLayers[key]
 
 		if err := buildpackLayerMetadata.add(layer); err != nil {
 			return nil, err
@@ -72,23 +94,23 @@ func (rb *RemoteBuilderImage) WriteableImage() (v1.Image, error) {
 		layers = append(layers, layer.v1Layer)
 	}
 
-	orderLayer, err := rb.tomlLayer()
+	orderLayer, err := cb.tomlLayer()
 	if err != nil {
 		return nil, err
 	}
 
-	image, err := mutate.AppendLayers(rb.baseImage, append(layers, orderLayer)...)
+	image, err := mutate.AppendLayers(cb.baseImage, append(layers, orderLayer)...)
 	if err != nil {
 		return nil, err
 	}
 
-	return setLabels(image, map[string]interface{}{
-		buildpackOrderLabel:  rb.order,
+	return registry.SetLabels(image, map[string]interface{}{
+		buildpackOrderLabel:  cb.order,
 		buildpackLayersLabel: buildpackLayerMetadata,
 		buildpackMetadataLabel: BuilderImageMetadata{
 			Description: "Custom Builder built with kpack",
-			Stack:       rb.baseMetadata.Stack,
-			Lifecycle:   rb.baseMetadata.Lifecycle,
+			Stack:       cb.baseMetadata.Stack,
+			Lifecycle:   cb.baseMetadata.Lifecycle,
 			CreatedBy: CreatorMetadata{
 				Name:    "kpack CustomBuilder",
 				Version: "",
@@ -98,9 +120,9 @@ func (rb *RemoteBuilderImage) WriteableImage() (v1.Image, error) {
 	})
 }
 
-func (rb *RemoteBuilderImage) tomlLayer() (v1.Layer, error) {
+func (cb *BuilderBuilder) tomlLayer() (v1.Layer, error) {
 	orderBuf := &bytes.Buffer{}
-	err := toml.NewEncoder(orderBuf).Encode(TomlOrder{rb.order})
+	err := toml.NewEncoder(orderBuf).Encode(TomlOrder{cb.order})
 	if err != nil {
 		return nil, err
 	}
@@ -130,51 +152,12 @@ func singeFileLayer(file string, contents []byte) (v1.Layer, error) {
 	return tarball.LayerFromReader(b)
 }
 
-func setLabels(image v1.Image, labels map[string]interface{}) (v1.Image, error) {
-	configFile, err := image.ConfigFile()
-	if err != nil {
-		return nil, err
-	}
-	config := *configFile.Config.DeepCopy()
-	if config.Labels == nil {
-		config.Labels = map[string]string{}
-	}
-	for k, v := range labels {
-		dataBytes, err := json.Marshal(v)
-		if err != nil {
-			return nil, errors.Wrapf(err, "marshalling data to JSON for label %s", k)
-		}
-
-		config.Labels[k] = string(dataBytes)
-	}
-	return mutate.Config(image, config)
-}
-
-func getLabel(image v1.Image, key string, value interface{}) error {
-	configFile, err := image.ConfigFile()
-	if err != nil {
-		return err
-	}
-	config := configFile.Config.DeepCopy()
-
-	stringValue, ok := config.Labels[key]
-	if !ok {
-		return errors.Errorf("could not find label %s", key)
-	}
-
-	return json.Unmarshal([]byte(stringValue), value)
-}
-
-func deterministicSortBySize(layers map[BuildpackInfo]buildpackLayer) ([]BuildpackInfo, error) {
+func deterministicSortBySize(layers map[BuildpackInfo]buildpackLayer) []BuildpackInfo {
 	keys := make([]BuildpackInfo, 0, len(layers))
 	sizes := make(map[BuildpackInfo]int64, len(layers))
 	for k, layer := range layers {
 		keys = append(keys, k)
-		size, err := layer.v1Layer.Size()
-		if err != nil {
-			return nil, err
-		}
-
+		size, _ := layer.v1Layer.Size()
 		sizes[k] = size
 	}
 
@@ -188,5 +171,5 @@ func deterministicSortBySize(layers map[BuildpackInfo]buildpackLayer) ([]Buildpa
 
 		return sizeI > sizeJ
 	})
-	return keys, nil
+	return keys
 }

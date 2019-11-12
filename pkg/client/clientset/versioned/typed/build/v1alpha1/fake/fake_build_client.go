@@ -40,14 +40,6 @@ func (c *FakeBuildV1alpha1) ClusterBuilders() v1alpha1.ClusterBuilderInterface {
 	return &FakeClusterBuilders{c}
 }
 
-func (c *FakeBuildV1alpha1) CustomBuilders(namespace string) v1alpha1.CustomBuilderInterface {
-	return &FakeCustomBuilders{c, namespace}
-}
-
-func (c *FakeBuildV1alpha1) CustomBuilderLists(namespace string) v1alpha1.CustomBuilderListInterface {
-	return &FakeCustomBuilderLists{c, namespace}
-}
-
 func (c *FakeBuildV1alpha1) Images(namespace string) v1alpha1.ImageInterface {
 	return &FakeImages{c, namespace}
 }

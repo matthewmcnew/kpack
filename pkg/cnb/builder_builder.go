@@ -130,15 +130,16 @@ func (cb *BuilderBuilder) tomlLayer() (v1.Layer, error) {
 	return singeFileLayer(orderTomlPath, orderBuf.Bytes())
 }
 
+var normalizedTime = time.Date(1980, time.January, 1, 0, 0, 1, 0, time.UTC)
+
 func singeFileLayer(file string, contents []byte) (v1.Layer, error) {
 	b := &bytes.Buffer{}
 	w := tar.NewWriter(b)
-
 	if err := w.WriteHeader(&tar.Header{
 		Name:    file,
 		Size:    int64(len(contents)),
 		Mode:    0644,
-		ModTime: time.Time{},
+		ModTime: normalizedTime, //todo test this
 	}); err != nil {
 		return nil, err
 	}
@@ -165,8 +166,8 @@ func deterministicSortBySize(layers map[BuildpackInfo]buildpackLayer) []Buildpac
 		sizeI := sizes[keys[i]]
 		sizeJ := sizes[keys[j]]
 
-		if sizeI == sizeJ {
-			return keys[i].String() > keys[j].String()
+		if sizeI == sizeJ { //todo test this
+			//	return keys[i].String() > keys[j].String()
 		}
 
 		return sizeI > sizeJ

@@ -1,9 +1,9 @@
 package cnb
 
 import (
+	"archive/tar"
 	"fmt"
 	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/crane"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/random"
 	"github.com/pivotal/kpack/pkg/apis/build/v1alpha1"
@@ -70,8 +70,9 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 							Version: "v1",
 						},
 						{
-							ID:      "io.buildpack.2",
-							Version: "v2",
+							ID:       "io.buildpack.2",
+							Version:  "v2",
+							Optional: true,
 						},
 					},
 				},
@@ -80,17 +81,25 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 	}
 
 	var (
-		buildpack1Layer v1.Layer
-		buildpack2Layer v1.Layer
-		buildpack3Layer v1.Layer
+		buildpack1Layer = &fakeLayer{
+			digest: "sha256:1bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+			diffID: "sha256:1bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462",
+			size:   1,
+		}
+		buildpack2Layer = &fakeLayer{
+			digest: "sha256:2bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+			diffID: "sha256:2bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462",
+			size:   100,
+		}
+		buildpack3Layer = &fakeLayer{
+			digest: "sha256:3bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+			diffID: "sha256:3bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462",
+			size:   1000,
+		}
 	)
 
 	it.Before(func() {
 		var err error
-		buildpack1Layer, err = crane.Layer(map[string][]byte{
-			"/cnb/io.buildpack.1/v1/bp":        []byte("io.buildpack.1"),
-			"/cnb/io.buildpack.1/v1/layerSize": []byte("sm"),
-		})
 		require.NoError(t, err)
 
 		fakeStore.AddBP("io.buildpack.1", "v1", []buildpackLayer{
@@ -102,18 +111,6 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 				},
 			},
 		})
-
-		buildpack2Layer, err = crane.Layer(map[string][]byte{
-			"/cnb/io.buildpack.2/v1/bp":        []byte("io.buildpack.2"),
-			"/cnb/io.buildpack.2/v1/layerSize": []byte("medium"),
-		})
-		require.NoError(t, err)
-
-		buildpack3Layer, err = crane.Layer(map[string][]byte{
-			"/cnb/io.buildpack.3/v1/bp":        []byte("io.buildpack.3"),
-			"/cnb/io.buildpack.3/v1/layerSize": []byte("THE-Largest"),
-		})
-		require.NoError(t, err)
 
 		fakeStore.AddBP("io.buildpack.2", "v2", []buildpackLayer{
 			{
@@ -145,12 +142,13 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 			},
 		})
 	})
+	const baseLayers = 10
 
 	when("CreateBuilder", func() {
 		var baseImage v1.Image
 		it.Before(func() {
 			var err error
-			baseImage, err = random.Image(10, 10)
+			baseImage, err = random.Image(10, int64(baseLayers))
 			require.NoError(t, err)
 
 			baseImage, err := registry.SetStringLabel(baseImage, map[string]string{
@@ -200,17 +198,38 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 
 			layers, err := savedImage.Layers()
 			require.NoError(t, err)
+
+			numberOfBuildpacks := 3
+			numberOrderLayers := 1
+			assert.Len(t, layers, baseLayers+numberOfBuildpacks+numberOrderLayers)
 			assert.Contains(t, layers, buildpack1Layer)
 			assert.Contains(t, layers, buildpack2Layer)
 			assert.Contains(t, layers, buildpack3Layer)
 
+			orderLayer := layers[len(layers)-1]
+			assertLayerContents(t, orderLayer, 0644, map[string]string{
+				"/cnb/order.toml": //language=toml
+				`[[order]]
+
+  [[order.group]]
+    id = "io.buildpack.1"
+    version = "v1"
+
+  [[order.group]]
+    id = "io.buildpack.2"
+    version = "v2"
+    optional = true
+`})
+
 			buildpackOrder, err := registry.GetStringLabel(savedImage, buildpackOrderLabel)
 			assert.NoError(t, err)
-			assert.JSONEq(t, `[{"group":[{"id":"io.buildpack.1","version":"v1"},{"id":"io.buildpack.2","version":"v2"}]}]`, buildpackOrder)
+			assert.JSONEq(t, //language=json
+				`[{"group":[{"id":"io.buildpack.1","version":"v1"},{"id":"io.buildpack.2","version":"v2","optional":true}]}]`, buildpackOrder)
 
 			buildpackMetadata, err := registry.GetStringLabel(savedImage, buildpackMetadataLabel)
 			assert.NoError(t, err)
-			assert.JSONEq(t, `{
+			assert.JSONEq(t, //language=json
+				`{
   "description": "Custom Builder built with kpack",
   "stack": {
     "runImage": {
@@ -247,17 +266,18 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
 
 			buildpackLayers, err := registry.GetStringLabel(savedImage, buildpackLayersLabel)
 			assert.NoError(t, err)
-			assert.JSONEq(t, `{
+			assert.JSONEq(t, //language=json
+				`{
   "io.buildpack.1": {
     "v1": {
-      "layerDigest": "sha256:05e924557699a861c0f009f64b9bbcaa1912374bdded6e20d2eaedba32d56a5c",
-      "layerDiffID": "sha256:0aca161a19383e3ad7c3d21cd650dd982d5b6f4a3f1c26b37c059e5c884692b1"
+      "layerDigest": "sha256:1bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+      "layerDiffID": "sha256:1bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462"
     }
   },
   "io.buildpack.2": {
     "v1": {
-      "layerDigest": "sha256:e0fa2148e4506e3d9910aa813cfdef6d088863565e30e9944e43ceb431fae774",
-      "layerDiffID": "sha256:3859a85bbe16b42427048313b98822df666112ab4cd123a5775f104acba2d45c",
+      "layerDigest": "sha256:2bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+      "layerDiffID": "sha256:2bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462",
       "order": [
         {
           "group": [
@@ -272,8 +292,8 @@ func testCreateBuilder(t *testing.T, when spec.G, it spec.S) {
   },
   "io.buildpack.3": {
     "v2": {
-      "layerDigest": "sha256:05781c7ea28573ed96d88bc12685c6fb76ba0af19866499f4202658cbd090df7",
-      "layerDiffID": "sha256:e5f3087b7180a8ef3f6c0b2d55590011279991e38be88daa041a0a53806ee9c3"
+      "layerDigest": "sha256:3bd8899667b8d1e6b124f663faca32903b470831e5e4e99265c839ab34628838",
+      "layerDiffID": "sha256:3bf8899667b8d1e6b124f663faca32903b470831e5e4e992644ac5c839ab3462"
     }
   }
 }
@@ -317,4 +337,36 @@ func (f *fakeStore) FetchBuildpack(id, version string) (RemoteBuildpackInfo, err
 
 func (f *fakeStore) AddBP(id, version string, layers []buildpackLayer) {
 	f.buildpacks[fmt.Sprintf("%s@%s", id, version)] = layers
+}
+
+func assertLayerContents(t *testing.T, layer v1.Layer, expectedMode int64, expectedContents map[string]string) {
+	t.Helper()
+	uncompressed, err := layer.Uncompressed()
+	require.NoError(t, err)
+	reader := tar.NewReader(uncompressed)
+
+	for {
+		header, err := reader.Next()
+		if err != nil {
+			break
+		}
+
+		expectedContent, ok := expectedContents[header.Name]
+		if !ok {
+			t.Fatalf("unexpected file %s", header.Name)
+		}
+
+		fileContents := make([]byte, header.Size)
+		_, _ = reader.Read(fileContents) //todo check error
+
+		require.Equal(t, expectedContent, string(fileContents))
+		require.Equal(t, header.Mode, expectedMode)
+		//require.Equal(t, header.ModTime.String(), time.Date(1980, time.January, 0, 0, 0, 1, 0, time.UTC).String())
+
+		delete(expectedContents, header.Name)
+	}
+
+	for fileName := range expectedContents {
+		t.Fatalf("file %s not in layer", fileName)
+	}
 }

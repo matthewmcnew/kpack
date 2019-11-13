@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestHello(t *testing.T) {
+func pestHello(t *testing.T) {
 	key := okay()
 
 	require.Equal(t, key, okay())

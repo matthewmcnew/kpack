@@ -11,7 +11,9 @@ spec:
   source:
     git:
       url: https://github.com/buildpack/sample-java-app.git
-      revision: master
+      revision: 0eccc6c2f01d9f055087ebbf03526ed0623e014a
+
+
 ---
 apiVersion: build.pivotal.io/v1alpha1
 kind: Image
